@@ -1,51 +1,120 @@
---// K7LE NPC CONTROLLER + AUTO WALK EGG + KILLAURA + AUTO DR. SCRAMBLE FIGHT
-
+--// K7LE PRO ULTIMATE EXECUTOR SCRIPT - STABLE & CLEAN
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
 
--- واجهة المستخدم الأساسية
-local ScreenGui = script:FindFirstAncestorOfClass("ScreenGui") or Instance.new("ScreenGui", LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui"))
+-- تنظيف النسخة القديمة إن وجدت لمنع التكرار
+pcall(function()
+	if CoreGui:FindFirstChild("K7LE_Advanced_Gui") then
+		CoreGui.K7LE_Advanced_Gui:Destroy()
+	end
+	if LocalPlayer.PlayerGui:FindFirstChild("K7LE_Advanced_Gui") then
+		LocalPlayer.PlayerGui.K7LE_Advanced_Gui:Destroy()
+	end
+end)
+
+local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "K7LE_Advanced_Gui"
+ScreenGui.ResetOnSpawn = false
+pcall(function()
+	ScreenGui.Parent = CoreGui
+end)
+if not ScreenGui.Parent then
+	ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
 
-local Main = script.Parent and script.Parent.Parent or Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.fromOffset(300, 360)
-Main.Position = UDim2.new(0.5, -150, 0.5, -180)
-Main.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+--==================================================
+-- 🎬 واجهة البداية (INTRO SCREEN)
+--==================================================
+local IntroFrame = Instance.new("Frame", ScreenGui)
+IntroFrame.Size = UDim2.new(1, 0, 1, 0)
+IntroFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+IntroFrame.BorderSizePixel = 0
+IntroFrame.ZIndex = 10
+
+local IntroTitle = Instance.new("TextLabel", IntroFrame)
+IntroTitle.Size = UDim2.new(1, 0, 0, 60)
+IntroTitle.Position = UDim2.new(0, 0, 0.45, -40)
+IntroTitle.BackgroundTransparency = 1
+IntroTitle.Text = "K7LE"
+IntroTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+IntroTitle.TextSize = 42
+IntroTitle.Font = Enum.Font.GothamBlack
+IntroTitle.TextTransparency = 1
+IntroTitle.ZIndex = 11
+
+local IntroSub = Instance.new("TextLabel", IntroFrame)
+IntroSub.Size = UDim2.new(1, 0, 0, 30)
+IntroSub.Position = UDim2.new(0, 0, 0.45, 20)
+IntroSub.BackgroundTransparency = 1
+IntroSub.Text = "k7le-script.com"
+IntroSub.TextColor3 = Color3.fromRGB(150, 100, 255)
+IntroSub.TextSize = 14
+IntroSub.Font = Enum.Font.GothamBold
+IntroSub.TextTransparency = 1
+IntroSub.ZIndex = 11
+
+task.spawn(function()
+	TweenService:Create(IntroTitle, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+	TweenService:Create(IntroSub, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+	TweenService:Create(IntroTitle, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {TextSize = 46}):Play()
+	
+	task.wait(2)
+	
+	TweenService:Create(IntroTitle, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
+	TweenService:Create(IntroSub, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
+	local fadeOut = TweenService:Create(IntroFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {BackgroundTransparency = 1})
+	fadeOut:Play()
+	fadeOut.Completed:Connect(function()
+		IntroFrame:Destroy()
+	end)
+end)
+
+--==================================================
+-- 🖥️ الواجهة الرئيسية (MAIN UI)
+--==================================================
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.fromOffset(320, 420)
+Main.Position = UDim2.new(0.5, -160, 0.5, -210)
+Main.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 Main.BorderSizePixel = 0
 Main.Active = true
 
 local UICornerMain = Instance.new("UICorner", Main)
-UICornerMain.CornerRadius = UDim.new(0, 12)
+UICornerMain.CornerRadius = UDim.new(0, 14)
+
+local UIStrokeMain = Instance.new("UIStroke", Main)
+UIStrokeMain.Color = Color3.fromRGB(60, 60, 90)
+UIStrokeMain.Thickness = 1.5
 
 -- شريط العنوان العلوي
 local TitleBar = Instance.new("Frame", Main)
-TitleBar.Size = UDim2.new(1, 0, 0, 40)
-TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+TitleBar.Size = UDim2.new(1, 0, 0, 45)
+TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 TitleBar.BorderSizePixel = 0
 
 local UICornerTitle = Instance.new("UICorner", TitleBar)
-UICornerTitle.CornerRadius = UDim.new(0, 12)
+UICornerTitle.CornerRadius = UDim.new(0, 14)
 
 local Title = Instance.new("TextLabel", TitleBar)
-Title.Size = UDim2.new(1, -50, 1, 0)
+Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "K7LE PRO BOSS CONTROLLER"
+Title.Text = "⚡ K7LE PRO SYSTEM"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 13
+Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
 local Minimize = Instance.new("TextButton", TitleBar)
-Minimize.Size = UDim2.fromOffset(30, 30)
-Minimize.Position = UDim2.new(1, -35, 0, 5)
-Minimize.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+Minimize.Size = UDim2.fromOffset(32, 32)
+Minimize.Position = UDim2.new(1, -40, 0, 6.5)
+Minimize.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
 Minimize.Text = "-"
 Minimize.TextColor3 = Color3.fromRGB(255, 255, 255)
 Minimize.TextSize = 16
@@ -54,38 +123,25 @@ Minimize.Font = Enum.Font.GothamBold
 local UICornerMin = Instance.new("UICorner", Minimize)
 UICornerMin.CornerRadius = UDim.new(0, 8)
 
--- زر عرض الهدف الحالي
+-- هدف الكيل أورا الحالي
 local TargetButton = Instance.new("TextLabel", Main)
-TargetButton.Size = UDim2.new(1, -30, 0, 30)
-TargetButton.Position = UDim2.new(0, 15, 0, 48)
-TargetButton.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
+TargetButton.Size = UDim2.new(1, -30, 0, 32)
+TargetButton.Position = UDim2.new(0, 15, 0, 55)
+TargetButton.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 TargetButton.Text = "TARGET : NONE"
-TargetButton.TextColor3 = Color3.fromRGB(180, 180, 200)
+TargetButton.TextColor3 = Color3.fromRGB(150, 150, 180)
 TargetButton.TextSize = 11
 TargetButton.Font = Enum.Font.GothamSemibold
 
 local UICornerT = Instance.new("UICorner", TargetButton)
 UICornerT.CornerRadius = UDim.new(0, 8)
 
--- زر الـ ESP للبيض
-local ESPButton = Instance.new("TextButton", Main)
-ESPButton.Size = UDim2.new(1, -30, 0, 34)
-ESPButton.Position = UDim2.new(0, 15, 0, 85)
-ESPButton.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
-ESPButton.Text = "ESP EGG : OFF"
-ESPButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ESPButton.TextSize = 12
-ESPButton.Font = Enum.Font.GothamBold
-
-local UICornerESP = Instance.new("UICorner", ESPButton)
-UICornerESP.CornerRadius = UDim.new(0, 8)
-
--- زر قائمة البيض للمشي التلقائي
+-- زر قائمة البيض النادر (Secret, Eternal, Divine)
 local MenuButton = Instance.new("TextButton", Main)
-MenuButton.Size = UDim2.new(1, -30, 0, 34)
-MenuButton.Position = UDim2.new(0, 15, 0, 125)
-MenuButton.BackgroundColor3 = Color3.fromRGB(60, 45, 85)
-MenuButton.Text = "📋 قائمة البيض (المشي التلقائي)"
+MenuButton.Size = UDim2.new(1, -30, 0, 40)
+MenuButton.Position = UDim2.new(0, 15, 0, 97)
+MenuButton.BackgroundColor3 = Color3.fromRGB(75, 45, 110)
+MenuButton.Text = "✨ قائمة البيض النادر والمسافات"
 MenuButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 MenuButton.TextSize = 12
 MenuButton.Font = Enum.Font.GothamBold
@@ -93,11 +149,24 @@ MenuButton.Font = Enum.Font.GothamBold
 local UICornerMenu = Instance.new("UICorner", MenuButton)
 UICornerMenu.CornerRadius = UDim.new(0, 8)
 
--- زر الـ KillAura العام
+-- زر التيلبرورت الفوري للسيف زون
+local SafeZoneButton = Instance.new("TextButton", Main)
+SafeZoneButton.Size = UDim2.new(1, -30, 0, 38)
+SafeZoneButton.Position = UDim2.new(0, 15, 0, 145)
+SafeZoneButton.BackgroundColor3 = Color3.fromRGB(30, 90, 70)
+SafeZoneButton.Text = "🛡️ تيلبرورت إلى Safe Zone"
+SafeZoneButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SafeZoneButton.TextSize = 12
+SafeZoneButton.Font = Enum.Font.GothamBold
+
+local UICornerSZ = Instance.new("UICorner", SafeZoneButton)
+UICornerSZ.CornerRadius = UDim.new(0, 8)
+
+-- زر الـ KillAura
 local KillAuraButton = Instance.new("TextButton", Main)
-KillAuraButton.Size = UDim2.new(1, -30, 0, 34)
-KillAuraButton.Position = UDim2.new(0, 15, 0, 165)
-KillAuraButton.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
+KillAuraButton.Size = UDim2.new(1, -30, 0, 38)
+KillAuraButton.Position = UDim2.new(0, 15, 0, 191)
+KillAuraButton.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 KillAuraButton.Text = "KILLAURA : OFF"
 KillAuraButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 KillAuraButton.TextSize = 12
@@ -106,12 +175,12 @@ KillAuraButton.Font = Enum.Font.GothamBold
 local UICornerKA = Instance.new("UICorner", KillAuraButton)
 UICornerKA.CornerRadius = UDim.new(0, 8)
 
--- زر قتال دكتور سكرمبل تلقائياً (Auto Dr. Scramble)
+-- زر دكتور سكرمبل
 local ScrambleButton = Instance.new("TextButton", Main)
-ScrambleButton.Size = UDim2.new(1, -30, 0, 34)
-ScrambleButton.Position = UDim2.new(0, 15, 0, 205)
-ScrambleButton.BackgroundColor3 = Color3.fromRGB(85, 45, 45)
-ScrambleButton.Text = "DR. SCRAMBLE FIGHT : OFF"
+ScrambleButton.Size = UDim2.new(1, -30, 0, 38)
+ScrambleButton.Position = UDim2.new(0, 15, 0, 237)
+ScrambleButton.BackgroundColor3 = Color3.fromRGB(90, 40, 40)
+ScrambleButton.Text = "DR. SCRAMBLE : OFF"
 ScrambleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ScrambleButton.TextSize = 12
 ScrambleButton.Font = Enum.Font.GothamBold
@@ -119,125 +188,138 @@ ScrambleButton.Font = Enum.Font.GothamBold
 local UICornerScr = Instance.new("UICorner", ScrambleButton)
 UICornerScr.CornerRadius = UDim.new(0, 8)
 
--- حالة المشي التلقائي
-local AutoWalkStatus = Instance.new("TextLabel", Main)
-AutoWalkStatus.Size = UDim2.new(1, -30, 0, 30)
-AutoWalkStatus.Position = UDim2.new(0, 15, 0, 245)
-AutoWalkStatus.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-AutoWalkStatus.Text = "الحالة: واقف مكانه"
-AutoWalkStatus.TextColor3 = Color3.fromRGB(200, 200, 200)
-AutoWalkStatus.TextSize = 11
-AutoWalkStatus.Font = Enum.Font.Gotham
+-- شريط الحالة التفاعلي
+local StatusLabel = Instance.new("TextLabel", Main)
+StatusLabel.Size = UDim2.new(1, -30, 0, 35)
+StatusLabel.Position = UDim2.new(0, 15, 0, 283)
+StatusLabel.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+StatusLabel.Text = "الحالة: جاهز وبدون لاق ✅"
+StatusLabel.TextColor3 = Color3.fromRGB(180, 220, 180)
+StatusLabel.TextSize = 11
+StatusLabel.Font = Enum.Font.Gotham
 
-local UICornerAS = Instance.new("UICorner", AutoWalkStatus)
+local UICornerAS = Instance.new("UICorner", StatusLabel)
 UICornerAS.CornerRadius = UDim.new(0, 8)
 
--- إطار القائمة المنسدلة للبيض
+-- إطار القائمة المنسدلة للبيض النادر
 local DropdownFrame = Instance.new("ScrollingFrame", Main)
-DropdownFrame.Size = UDim2.new(1, -30, 0, 110)
-DropdownFrame.Position = UDim2.new(0, 15, 0, 162)
-DropdownFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+DropdownFrame.Size = UDim2.new(1, -30, 0, 215)
+DropdownFrame.Position = UDim2.new(0, 15, 0, 145)
+DropdownFrame.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
 DropdownFrame.BorderSizePixel = 0
 DropdownFrame.Visible = false
 DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 DropdownFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 local UICornerDF = Instance.new("UICorner", DropdownFrame)
-UICornerDF.CornerRadius = UDim.new(0, 8)
+UICornerDF.CornerRadius = UDim.new(0, 10)
 
 local UIListLayout = Instance.new("UIListLayout", DropdownFrame)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 4)
+UIListLayout.Padding = UDim.new(0, 6)
 
--- المتغيرات
+-- متغيرات التحكم
 local CurrentTarget = nil
-local ESPEnabled = false
 local KillAuraEnabled = false
 local ScrambleFightEnabled = false
-local ActiveESPElements = {}
 local KillRange = 35
-local isWalkingToEgg = false
-local originalPosition = nil
 
--- وظيفة المشي للبيضة والرجوع
-local function walkToTargetAndBack(targetPart)
-	if isWalkingToEgg or not targetPart or not targetPart.Parent then return end
-	local char = LocalPlayer.Character
-	local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-	local rootPart = char and char:FindFirstChild("HumanoidRootPart")
-
-	if not humanoid or not rootPart then return end
-
-	isWalkingToEgg = true
-	originalPosition = rootPart.Position
-	AutoWalkStatus.Text = "الحالة: ماشي باتجاه البيضة..."
-	AutoWalkStatus.TextColor3 = Color3.fromRGB(255, 200, 0)
-
-	humanoid:MoveTo(targetPart.Position)
-	
-	local startTime = tick()
-	repeat
-		task.wait(0.2)
-		if (rootPart.Position - targetPart.Position).Magnitude < 6 then
-			break
-		end
-	until not targetPart.Parent or (tick() - startTime) > 10
-
-	AutoWalkStatus.Text = "الحالة: تم الوصول! جاري الرجوع..."
-	task.wait(0.5)
-
-	if originalPosition then
-		humanoid:MoveTo(originalPosition)
-		local returnStart = tick()
-		repeat
-			task.wait(0.2)
-			if (rootPart.Position - originalPosition).Magnitude < 5 then
-				break
-			end
-		until (tick() - returnStart) > 10
+-- دالة تنظيف اسم البيضة
+local function cleanEggName(name)
+	local cleaned = name:gsub("Modelsforegg", ""):gsub("Model", ""):gsub("Egg", ""):gsub("Slot", ""):gsub("Area", ""):gsub("Client", ""):gsub("SpotBottom", ""):gsub("Forest", "")
+	cleaned = cleaned:gsub("[0-9]", "")
+	cleaned = cleaned:gsub("[_%.%-]", " ")
+	cleaned = cleaned:match("^%s*(.-)%s*$")
+	if cleaned == "" or #cleaned < 2 then
+		return "Special Egg"
 	end
-
-	AutoWalkStatus.Text = "الحالة: تم العودة بنجاح ✅"
-	AutoWalkStatus.TextColor3 = Color3.fromRGB(0, 255, 150)
-	isWalkingToEgg = false
+	return cleaned
 end
 
--- تعبئة القائمة بالبيض
-local function populateEggDropdown()
+-- تليبرورت فوري للبيضة
+local function teleportToEgg(targetPart)
+	local char = LocalPlayer.Character
+	local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+	if rootPart and targetPart then
+		rootPart.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
+		StatusLabel.Text = "الحالة: تم الانتقال للبيضة بنجاح! 🎯"
+		StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+	end
+end
+
+-- زر التيلبرورت للسيف زون
+SafeZoneButton.MouseButton1Click:Connect(function()
+	local char = LocalPlayer.Character
+	local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+	if not rootPart then return end
+
+	local foundSafe = false
+	for _, obj in ipairs(Workspace:GetDescendants()) do
+		local nameLower = obj.Name:lower()
+		if nameLower:find("spawn") or nameLower:find("safezone") or nameLower:find("lobby") then
+			if obj:IsA("BasePart") then
+				rootPart.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
+				foundSafe = true
+				break
+			end
+		end
+	end
+
+	if foundSafe then
+		StatusLabel.Text = "الحالة: تم الانتقال إلى Safe Zone 🛡️"
+		StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+	else
+		rootPart.CFrame = CFrame.new(0, 50, 0)
+		StatusLabel.Text = "الحالة: تم نقلك لمنطقة آمنة للأعلى"
+		StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+	end
+end)
+
+-- تعبئة القائمة بالبيض النادر
+local function populateFilteredEggs()
 	for _, child in ipairs(DropdownFrame:GetChildren()) do
 		if child:IsA("TextButton") then child:Destroy() end
 	end
+
+	local char = LocalPlayer.Character
+	local myRoot = char and char:FindFirstChild("HumanoidRootPart")
 
 	for _, obj in ipairs(Workspace:GetDescendants()) do
 		local fullName = obj.Name
 		local nameLower = fullName:lower()
 
-		if not nameLower:find("treadmill") and not nameLower:find("machine") and not nameLower:find("fuse") and not nameLower:find("player") then
-			if nameLower:find("egg") or nameLower:find("slot") or nameLower:find("areaeggslotsclient") then
-				if obj:IsA("BasePart") or obj:IsA("Model") then
-					local primaryPart = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
-					
-					if primaryPart then
-						local creatureName = fullName
-						creatureName = creatureName:gsub("Modelsforegg", ""):gsub("Model", ""):gsub("Egg", ""):gsub("Slot", ""):gsub("Area", ""):gsub("Client", ""):gsub("_", " "):gsub("%.", "")
-						creatureName = creatureName:match("^%s*(.-)%s*$")
-						if creatureName == "" or #creatureName < 2 then creatureName = "Boss Egg" end
+		if not nameLower:find("treadmill") 
+			and not nameLower:find("machine") 
+			and not nameLower:find("fuse") 
+			and not nameLower:find("player") 
+			and not nameLower:find("plot") 
+			and not nameLower:find("incubator") then
 
-						local eggBtn = Instance.new("TextButton", DropdownFrame)
-						eggBtn.Size = UDim2.new(1, -10, 0, 28)
-						eggBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-						eggBtn.Text = "🥚 " .. creatureName
-						eggBtn.TextColor3 = Color3.fromRGB(255, 220, 50)
-						eggBtn.TextSize = 11
-						eggBtn.Font = Enum.Font.GothamBold
+			if nameLower:find("egg") or nameLower:find("slot") then
+				if nameLower:find("secret") or nameLower:find("eternal") or nameLower:find("divine") then
+					if obj:IsA("BasePart") or obj:IsA("Model") then
+						local primaryPart = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
+						
+						if primaryPart then
+							local eggName = cleanEggName(fullName)
+							local dist = myRoot and math.floor((myRoot.Position - primaryPart.Position).Magnitude) or 0
 
-						local btnCorner = Instance.new("UICorner", eggBtn)
-						btnCorner.CornerRadius = UDim.new(0, 6)
+							local eggBtn = Instance.new("TextButton", DropdownFrame)
+							eggBtn.Size = UDim2.new(1, -10, 0, 35)
+							eggBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 38)
+							eggBtn.Text = "💎 " .. eggName .. "  |  [" .. dist .. "m]"
+							eggBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
+							eggBtn.TextSize = 11
+							eggBtn.Font = Enum.Font.GothamBold
 
-						eggBtn.MouseButton1Click:Connect(function()
-							DropdownFrame.Visible = false
-							walkToTargetAndBack(primaryPart)
-						end)
+							local btnCorner = Instance.new("UICorner", eggBtn)
+							btnCorner.CornerRadius = UDim.new(0, 6)
+
+							eggBtn.MouseButton1Click:Connect(function()
+								DropdownFrame.Visible = false
+								teleportToEgg(primaryPart)
+							end)
+						end
 					end
 				end
 			end
@@ -247,117 +329,23 @@ end
 
 MenuButton.MouseButton1Click:Connect(function()
 	DropdownFrame.Visible = not DropdownFrame.Visible
-	if DropdownFrame.Visible then populateEggDropdown() end
-end)
-
---==================================================
--- ESP EGG SYSTEM
---==================================================
-
-local function clearESP()
-	for _, data in pairs(ActiveESPElements) do
-		if data and data.Gui then data.Gui:Destroy() end
-	end
-	ActiveESPElements = {}
-end
-
-local function createEggESP(targetPart, creatureName)
-	if not targetPart or not targetPart:IsA("BasePart") then return end
-
-	local bill = Instance.new("BillboardGui")
-	bill.Name = "K7LE_CleanEgg_Tag"
-	bill.Adornee = targetPart
-	bill.Size = UDim2.new(0, 150, 0, 50)
-	bill.StudsOffset = Vector3.new(0, 3.5, 0)
-	bill.AlwaysOnTop = true
-
-	local label = Instance.new("TextLabel", bill)
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.Text = "🥚 [" .. creatureName .. "]\n[ 0m ]"
-	label.TextColor3 = Color3.fromRGB(255, 220, 50)
-	label.TextStrokeTransparency = 0.3
-	label.TextSize = 12
-	label.Font = Enum.Font.GothamBold
-
-	local highlight = Instance.new("Highlight")
-	highlight.Adornee = targetPart.Parent:IsA("Model") and targetPart.Parent or targetPart
-	highlight.FillColor = Color3.fromRGB(255, 200, 0)
-	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-	highlight.FillTransparency = 0.5
-	highlight.Parent = bill
-
-	bill.Parent = ScreenGui
-	table.insert(ActiveESPElements, {Gui = bill, Part = targetPart, Label = label})
-end
-
-local function refreshWorldESP()
-	clearESP()
-	if not ESPEnabled then return end
-
-	for _, obj in ipairs(Workspace:GetDescendants()) do
-		local fullName = obj.Name
-		local nameLower = fullName:lower()
-
-		if not nameLower:find("treadmill") and not nameLower:find("machine") and not nameLower:find("fuse") and not nameLower:find("player") then
-			if nameLower:find("egg") or nameLower:find("slot") or nameLower:find("areaeggslotsclient") then
-				if obj:IsA("BasePart") or obj:IsA("Model") then
-					local primaryPart = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
-					
-					if primaryPart then
-						local creatureName = fullName
-						creatureName = creatureName:gsub("Modelsforegg", ""):gsub("Model", ""):gsub("Egg", ""):gsub("Slot", ""):gsub("Area", ""):gsub("Client", ""):gsub("_", " "):gsub("%.", "")
-						creatureName = creatureName:match("^%s*(.-)%s*$")
-						if creatureName == "" or #creatureName < 2 then creatureName = "Boss Egg" end
-
-						createEggESP(primaryPart, creatureName)
-					end
-				end
-			end
-		end
-	end
-end
-
-ESPButton.MouseButton1Click:Connect(function()
-	ESPEnabled = not ESPEnabled
-	if ESPEnabled then
-		ESPButton.Text = "ESP EGG : ON"
-		ESPButton.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
-		refreshWorldESP()
-	else
-		ESPButton.Text = "ESP EGG : OFF"
-		ESPButton.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
-		clearESP()
-	end
-end)
-
-RunService.RenderStepped:Connect(function()
-	local char = LocalPlayer.Character
-	local myRoot = char and char:FindFirstChild("HumanoidRootPart")
-
-	if ESPEnabled and myRoot then
-		for _, data in ipairs(ActiveESPElements) do
-			if data.Part and data.Part.Parent and data.Label then
-				local dist = math.floor((myRoot.Position - data.Part.Position).Magnitude)
-				local currentText = data.Label.Text:match("^(.-)\n") or "🥚 [Egg]"
-				data.Label.Text = currentText .. "\n[ " .. dist .. "m ]"
-			end
-		end
+	if DropdownFrame.Visible then 
+		populateFilteredEggs() 
 	end
 end)
 
 --==================================================
--- KILLAURA & AUTO DR. SCRAMBLE FIGHT SYSTEM
+-- KILLAURA & SCRAMBLE SYSTEM
 --==================================================
 
 KillAuraButton.MouseButton1Click:Connect(function()
 	KillAuraEnabled = not KillAuraEnabled
 	if KillAuraEnabled then
 		KillAuraButton.Text = "KILLAURA : ON"
-		KillAuraButton.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+		KillAuraButton.BackgroundColor3 = Color3.fromRGB(0, 140, 100)
 	else
 		KillAuraButton.Text = "KILLAURA : OFF"
-		KillAuraButton.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
+		KillAuraButton.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	end
 end)
 
@@ -365,10 +353,10 @@ ScrambleButton.MouseButton1Click:Connect(function()
 	ScrambleFightEnabled = not ScrambleFightEnabled
 	if ScrambleFightEnabled then
 		ScrambleButton.Text = "DR. SCRAMBLE : ON"
-		ScrambleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+		ScrambleButton.BackgroundColor3 = Color3.fromRGB(0, 140, 100)
 	else
 		ScrambleButton.Text = "DR. SCRAMBLE : OFF"
-		ScrambleButton.BackgroundColor3 = Color3.fromRGB(85, 45, 45)
+		ScrambleButton.BackgroundColor3 = Color3.fromRGB(90, 40, 40)
 	end
 end)
 
@@ -380,7 +368,6 @@ RunService.RenderStepped:Connect(function()
 	local targetToAttack = nil
 	local shortestDistance = KillRange
 
-	-- فحص القتال التلقائي (البحث عن دكتور سكرمبل أولاً إذا كان مفعل وموجود)
 	for _, target in ipairs(Workspace:GetDescendants()) do
 		if target:IsA("Model") and target ~= char then
 			local nameLower = target.Name:lower()
@@ -388,13 +375,11 @@ RunService.RenderStepped:Connect(function()
 			local rootPart = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Head")
 
 			if humanoid and humanoid.Health > 0 and rootPart then
-				-- إذا كانت ميزة دكتور سكرمبل مفعلة والهدف هو دكتور سكرمبل
 				if ScrambleFightEnabled and (nameLower:find("scramble") or nameLower:find("doctor")) then
 					targetToAttack = rootPart
 					CurrentTarget = target
 					break
 				elseif KillAuraEnabled then
-					-- القتال العام (لاعبين أو NPCs)
 					local isPlayer = Players:GetPlayerFromCharacter(target)
 					if not isPlayer or isPlayer ~= LocalPlayer then
 						local dist = (myRoot.Position - rootPart.Position).Magnitude
@@ -423,12 +408,12 @@ RunService.RenderStepped:Connect(function()
 		TargetButton.TextColor3 = Color3.fromRGB(0, 255, 150)
 	else
 		TargetButton.Text = "TARGET : NONE"
-		TargetButton.TextColor3 = Color3.fromRGB(180, 180, 200)
+		TargetButton.TextColor3 = Color3.fromRGB(150, 150, 180)
 	end
 end)
 
 --==================================================
--- DRAG & MINIMIZE
+-- DRAG & MINIMIZE SYSTEM
 --==================================================
 
 local dragging, dragStart, startPosition = false, nil, nil
@@ -456,19 +441,19 @@ Minimize.MouseButton1Click:Connect(function()
 	minimized = not minimized
 	if minimized then
 		for _, child in ipairs(Main:GetChildren()) do
-			if child ~= TitleBar and not child:IsA("UICorner") then child.Visible = false end
+			if child ~= TitleBar and not child:IsA("UICorner") and not child:IsA("UIStroke") then child.Visible = false end
 		end
 		DropdownFrame.Visible = false
-		TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.fromOffset(300, 40)}):Play()
+		TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.fromOffset(320, 45)}):Play()
 		Minimize.Text = "+"
 	else
-		TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.fromOffset(300, 360)}):Play()
+		TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.fromOffset(320, 420)}):Play()
 		task.wait(0.2)
 		for _, child in ipairs(Main:GetChildren()) do
-			if not child:IsA("UICorner") then child.Visible = true end
+			if not child:IsA("UICorner") and not child:IsA("UIStroke") then child.Visible = true end
 		end
 		Minimize.Text = "-"
 	end
 end)
 
-print("[K7LE] Dr. Scramble Auto Fight & Controller Loaded Successfully!")
+print("[K7LE] Loaded successfully via CoreGui!")
