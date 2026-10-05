@@ -20,7 +20,11 @@ Frame.Position = UDim2.new(0.5, -150, 0.5, -75)
 Frame.Active = true
 Frame.Draggable = true
 
--- إعدادات العنوان (الذي يخفي الواجهة)
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 8)
+frameCorner.Parent = Frame
+
+-- إعدادات العنوان (زر الفتح والإغلاق وشكل الدائرة)
 Title.Text = "K7LE"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.Position = UDim2.new(0, 0, 0, 0)
@@ -61,13 +65,13 @@ local cCorner1 = Instance.new("UICorner")
 cCorner1.CornerRadius = UDim.new(1, 0)
 cCorner1.Parent = circle1
 
---// ==================== [ 4) إعدادات التحديد الأخضر (ESP) ] ====================
+--// ==================== [ 4) إعدادات التحديد الثابت (ESP) ] ====================
 local targetHighlight = Instance.new("Highlight")
 targetHighlight.FillColor = Color3.fromRGB(0, 255, 0)
 targetHighlight.OutlineColor = Color3.fromRGB(0, 255, 0)
 targetHighlight.FillTransparency = 0.7 
 targetHighlight.OutlineTransparency = 0 
-local currentTargetChar = nil
+local currentTarget = nil
 
 --// ==================== [ 5) المتغيرات وأحداث الزر ] ====================
 local killAuraOn = false
@@ -81,21 +85,18 @@ killAuraToggle.MouseButton1Click:Connect(function()
 	TweenService:Create(circle1, tweenInfo, {Position = targetCirclePos}):Play()
 	TweenService:Create(killAuraToggle, tweenInfo, {BackgroundColor3 = targetBgColor}):Play()
 	
-	-- إخفاء الخط الأخضر فوراً إذا تم إطفاء الزر
 	if not killAuraOn then
 		targetHighlight.Parent = nil
-		currentTargetChar = nil
+		currentTarget = nil
 	end
 end)
 
---// ==================== [ 6) منطق الكيل اورا (مع تخطي الحماية) ] ====================
-local RANGE = 25 
+--// ==================== [ 6) منطق الكيل اورا (مدى 200 وسريع) ] ====================
+local RANGE = 200 -- تم زيادة المدى إلى 200
 local DAMAGE = 25
-local attackCooldownMin = 0.3 
-local attackCooldownMax = 0.7 
-local nextAttackTime = 0
+local attackCooldown = 0.15 
+local lastAttack = 0
 
--- دالة للتحقق من وجود جدار بين اللاعب والهدف (Wall Check Bypass)
 local function checkLineOfSight(startPos, endPos, character)
 	local raycastParams = RaycastParams.new()
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -114,14 +115,29 @@ RunService.RenderStepped:Connect(function()
 	if not killAuraOn then return end
 	
 	local currentTime = tick()
-	if currentTime >= nextAttackTime then
-		-- توقيت عشوائي للضرب حتى لا يكتشف السيرفر التكرار الآلي (Humanized Cooldown)
-		nextAttackTime = currentTime + (math.random(attackCooldownMin * 100, attackCooldownMax * 100) / 100)
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if not root or not hum or hum.Health <= 0 then return end
 
-		local char = player.Character
-		local root = char and char:FindFirstChild("HumanoidRootPart")
-		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		if not root or not hum or hum.Health <= 0 then return end
+	-- التحقق من الهدف الحالي إذا كان لا يزال حياً وفي المدى الجديد (200)
+	if currentTarget and currentTarget.Parent then
+		local enemyRoot = currentTarget.Parent:FindFirstChild("HumanoidRootPart")
+		if currentTarget.Health > 0 and enemyRoot and (root.Position - enemyRoot.Position).Magnitude <= RANGE then
+			if currentTime - lastAttack >= attackCooldown then
+				lastAttack = currentTime
+				currentTarget:TakeDamage(DAMAGE)
+			end
+			return
+		else
+			targetHighlight.Parent = nil
+			currentTarget = nil
+		end
+	end
+
+	-- البحث عن هدف جديد ضمن مدى 200
+	if currentTime - lastAttack >= attackCooldown then
+		lastAttack = currentTime
 
 		local params = OverlapParams.new()
 		params.FilterType = Enum.RaycastFilterType.Exclude
@@ -130,7 +146,6 @@ RunService.RenderStepped:Connect(function()
 		local best, bestHealth = nil, 0
 		local seen = {}
 
-		-- البحث عن الأعداء في النطاق
 		for _, part in workspace:GetPartBoundsInRadius(root.Position, RANGE, params) do
 			local model = part:FindFirstAncestorOfClass("Model")
 			if model and not seen[model] then
@@ -138,11 +153,8 @@ RunService.RenderStepped:Connect(function()
 				local h = model:FindFirstChildOfClass("Humanoid")
 				local enemyRoot = model:FindFirstChild("HumanoidRootPart")
 				
-				-- التأكد أن الهدف حي وليس لاعباً آخر
 				if h and h.Health > 0 and enemyRoot and not Players:GetPlayerFromCharacter(model) then
-					-- التحقق من الرؤية (Wall Check)
 					if checkLineOfSight(root.Position, enemyRoot.Position, char) then
-						-- اختيار الهدف اللي عنده أعلى دم
 						if h.Health > bestHealth then
 							best, bestHealth = h, h.Health
 						end
@@ -151,38 +163,45 @@ RunService.RenderStepped:Connect(function()
 			end
 		end
 
-		-- تنفيذ الضرر وتطبيق الخط الأخضر (ESP)
 		if best then
-			local enemyChar = best.Parent
-			
-			-- إذا تغير الهدف، ننقل الإضاءة الخضراء للهدف الجديد
-			if currentTargetChar ~= enemyChar then
-				targetHighlight.Parent = enemyChar
-				currentTargetChar = enemyChar
-			end
-			
+			currentTarget = best
+			targetHighlight.Parent = best.Parent
 			best:TakeDamage(DAMAGE)
 		else
-			-- إذا ماكو أي هدف قريب مكشوف، نشيل التحديد
-			if targetHighlight.Parent ~= nil then
-				targetHighlight.Parent = nil
-				currentTargetChar = nil
-			end
+			targetHighlight.Parent = nil
+			currentTarget = nil
 		end
 	end
 end)
 
---// ==================== [ 7) انيميشن إخفاء/إظهار النافذة ] ====================
-local info = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+--// ==================== [ 7) تحويل الواجهة إلى دائرة عند الإغلاق ] ====================
+local info = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 Title.MouseButton1Click:Connect(function()
-	local targetTrans = isVisible and 1 or 0
 	isVisible = not isVisible
 
-	TweenService:Create(Frame, info, {BackgroundTransparency = targetTrans}):Play()
-	TweenService:Create(killAuraToggle, info, {BackgroundTransparency = targetTrans}):Play()
-	TweenService:Create(circle1, info, {BackgroundTransparency = targetTrans}):Play()
-	TweenService:Create(NL1, info, {TextTransparency = targetTrans}):Play()
+	if isVisible then
+		-- فتح الواجهة لوضعها الطبيعي
+		TweenService:Create(Frame, info, {Size = UDim2.new(0, 300, 0, 150), BackgroundTransparency = 0}):Play()
+		TweenService:Create(frameCorner, info, {CornerRadius = UDim.new(0, 8)}):Play()
+		Title.Size = UDim2.new(1, 0, 0, 30)
+		Title.Position = UDim2.new(0, 0, 0, 0)
+		
+		task.wait(0.1)
+		killAuraToggle.Visible = true
+		circle1.Visible = true
+		NL1.Visible = true
+	else
+		-- إغلاق الواجهة وتحويلها إلى دائرة صغيرة في منتصفها اسم K7LE
+		killAuraToggle.Visible = false
+		circle1.Visible = false
+		NL1.Visible = false
+		
+		TweenService:Create(Frame, info, {Size = UDim2.new(0, 70, 0, 70), BackgroundTransparency = 0}):Play()
+		TweenService:Create(frameCorner, info, {CornerRadius = UDim.new(1, 0)}):Play()
+		Title.Size = UDim2.new(1, 0, 1, 0)
+		Title.Position = UDim2.new(0, 0, 0, 0)
+	end
 end)
 
 --// ==================== [ 8) الربط النهائي ] ====================
