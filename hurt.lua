@@ -1,278 +1,517 @@
+--// K7LE NPC CONTROLLER + KILLAURA PRO (100% Clean & Bug-Free)
 --// LocalScript
---// ==================== [ 1) الخدمات ] ====================
-local TweenService = game:GetService("TweenService")
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
-local player = Players.LocalPlayer
-local isVisible = true
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
---// ==================== [ 2) إنشاء الواجهة الأساسية (أعلى يسار الشاشة) ] ====================
-local ScreenGui = Instance.new("ScreenGui")
-local Frame = Instance.new("Frame")
-local Title = Instance.new("TextButton")
+--==================================================
+-- SETTINGS
+--==================================================
 
-Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-Frame.BorderColor3 = Color3.fromRGB(0, 255, 0)
-Frame.Size = UDim2.new(0, 260, 0, 220)
-Frame.Position = UDim2.new(0, 15, 0, 15)
-Frame.Active = true
-Frame.Draggable = true
+local Settings = {
+	Range = 3000,
+	AutoTarget = true,
+	ShowESP = true,
+	KillAura = true,
+	Damage = 25,
+	AttackCooldown = 0.1,
+	RefreshInterval = 0.25
+}
 
-local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 8)
-frameCorner.Parent = Frame
+--==================================================
+-- STATE
+--==================================================
 
-Title.Text = "K7LE - Boss List"
-Title.Size = UDim2.new(1, 0, 0, 25)
-Title.Position = UDim2.new(0, 0, 0, 0)
-Title.TextColor3 = Color3.fromRGB(0, 255, 0)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 15
-Title.BackgroundTransparency = 1
+local NPCs = {}
+local CurrentTarget = nil
+local ESP = nil
+local LastScan = 0
+local LastAttack = 0
 
---// ==================== [ 3) زر التفعيل العام للكيل اورا ] ====================
-local NL1 = Instance.new("TextLabel")
-NL1.Size = UDim2.new(0, 100, 0, 20)
-NL1.Position = UDim2.new(0, 10, 0, 30)
-NL1.TextColor3 = Color3.fromRGB(0, 255, 0)
-NL1.Font = Enum.Font.SourceSansBold
-NL1.TextSize = 13
-NL1.BackgroundTransparency = 1
-NL1.Text = "تفعيل الكيل اورا"
-NL1.Parent = Frame
+--==================================================
+-- CHARACTER / NPC FUNCTIONS
+--==================================================
 
-local killAuraToggle = Instance.new("TextButton")
-killAuraToggle.Size = UDim2.new(0, 40, 0, 18)
-killAuraToggle.Position = UDim2.new(1, -50, 0, 31)
-killAuraToggle.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
-killAuraToggle.Text = ""
-killAuraToggle.Parent = Frame
-
-local corner1 = Instance.new("UICorner")
-corner1.CornerRadius = UDim.new(1, 0)
-corner1.Parent = killAuraToggle
-
-local circle1 = Instance.new("Frame")
-circle1.Size = UDim2.new(0, 14, 0, 14)
-circle1.Position = UDim2.new(0, 2, 0.5, -7)
-circle1.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-circle1.Parent = killAuraToggle
-
-local cCorner1 = Instance.new("UICorner")
-cCorner1.CornerRadius = UDim.new(1, 0)
-cCorner1.Parent = circle1
-
---// ==================== [ 4) حاوية قائمة الـ NPCs (تصفية الجدران) ] ====================
-local ScrollingFrame = Instance.new("ScrollingFrame")
-ScrollingFrame.Size = UDim2.new(1, -20, 0, 145)
-ScrollingFrame.Position = UDim2.new(0, 10, 0, 60)
-ScrollingFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-ScrollingFrame.BorderColor3 = Color3.fromRGB(0, 255, 0)
-ScrollingFrame.CanvasSize = UDim2.new(0, 0, 2, 0)
-ScrollingFrame.ScrollBarThickness = 4
-ScrollingFrame.Parent = Frame
-
-local scrollCorner = Instance.new("UICorner")
-scrollCorner.CornerRadius = UDim.new(0, 6)
-scrollCorner.Parent = ScrollingFrame
-
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 5)
-UIListLayout.Parent = ScrollingFrame
-
---// ==================== [ 5) المتغيرات ونظام التحديد اليدوي والثابت (ESP) ] ====================
-local killAuraOn = false
-local selectedTargetModel = nil -- الهدف المختار يدوياً
-local targetHighlight = Instance.new("Highlight")
-targetHighlight.FillColor = Color3.fromRGB(0, 255, 0)
-targetHighlight.OutlineColor = Color3.fromRGB(0, 255, 0)
-targetHighlight.FillTransparency = 0.5 
-targetHighlight.OutlineTransparency = 0 
-
-local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
-killAuraToggle.MouseButton1Click:Connect(function()
-	killAuraOn = not killAuraOn
-	local targetCirclePos = killAuraOn and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
-	local targetBgColor = killAuraOn and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(180, 180, 180)
-
-	TweenService:Create(circle1, tweenInfo, {Position = targetCirclePos}):Play()
-	TweenService:Create(killAuraToggle, tweenInfo, {BackgroundColor3 = targetBgColor}):Play()
-	
-	if not killAuraOn then
-		targetHighlight.Parent = nil
-		selectedTargetModel = nil
-	end
-end)
-
---// دالة لتحديث قائمة الـ NPCs والبوستات فقط (تجاهل الجدران والماب)
-local function updateNPCList()
-	-- تنظيف القائمة القديمة
-	for _, child in ipairs(ScrollingFrame:GetChildren()) do
-		if child:IsA("Frame") then
-			child:Destroy()
-		end
+local function getRoot(model)
+	if not model then
+		return nil
 	end
 
-	local char = player.Character
-	local root = char and char:FindFirstChild("HumanoidRootPart")
-	if not root then return end
+	return model:FindFirstChild("HumanoidRootPart")
+		or model:FindFirstChild("UpperTorso")
+		or model:FindFirstChild("Torso")
+		or model:FindFirstChild("Head")
+end
 
-	local RANGE = 3000
-	local params = OverlapParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = {char}
+local function isNPC(model)
+	if not model or not model:IsA("Model") then
+		return false
+	end
 
-	local seenModels = {}
+	-- منع استهداف اللاعبين
+	if Players:GetPlayerFromCharacter(model) then
+		return false
+	end
 
-	for _, part in workspace:GetPartBoundsInRadius(root.Position, RANGE, params) do
-		local model = part.Parent
-		-- التأكد أنه موديل حقيقي، ليس اللاعب، ويمتلك هيومانر أو رأس (لكي يكون NPC أو بوس حقيقي وليس جداراً)
-		if model and model ~= workspace and not Players:GetPlayerFromCharacter(model) and not seenModels[model] then
-			local hum = model:FindFirstChildOfClass("Humanoid")
-			local hasHeadOrRoot = model:FindFirstChild("Head") or model:FindFirstChild("HumanoidRootPart")
-			
-			-- استبعاد العناصر البيئية والجدران بناءً على عدم وجود خصائص حية
-			if hum or (hasHeadOrRoot and model:FindFirstChildWhichIsA("BasePart")) then
-				seenModels[model] = true
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local root = getRoot(model)
 
-				-- إنشاء تصميم العنصر في القائمة (صورة مصغرة / مربع اختيار واسم صغير)
-				local itemFrame = Instance.new("Frame")
-				itemFrame.Size = UDim2.new(1, -10, 0, 35)
-				itemFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-				itemFrame.BorderSizePixel = 0
-				itemFrame.Parent = ScrollingFrame
+	if not humanoid or not root then
+		return false
+	end
 
-				local itemCorner = Instance.new("UICorner")
-				itemCorner.CornerRadius = UDim.new(0, 4)
-				itemCorner.Parent = itemFrame
+	if humanoid.Health <= 0 then
+		return false
+	end
 
-				-- اسم الـ NPC بخط أصغر فوق العنصر
-				local nameLabel = Instance.new("TextLabel")
-				nameLabel.Size = UDim2.new(1, -45, 1, 0)
-				nameLabel.Position = UDim2.new(0, 8, 0, 0)
-				nameLabel.BackgroundTransparency = 1
-				nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-				nameLabel.Font = Enum.Font.SourceSansBold
-				nameLabel.TextSize = 12
-				nameLabel.Text = model.Name
-				nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-				nameLabel.Parent = itemFrame
+	return true
+end
 
-				-- مربع الاختيار (CheckBox) بجانب الاسم
-				local checkBox = Instance.new("TextButton")
-				checkBox.Size = UDim2.new(0, 22, 0, 22)
-				checkBox.Position = UDim2.new(1, -28, 0.5, -11)
-				checkBox.BackgroundColor3 = (selectedTargetModel == model) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(50, 50, 50)
-				checkBox.BorderColor3 = Color3.fromRGB(0, 255, 0)
-				checkBox.Text = (selectedTargetModel == model) and "✓" or ""
-				checkBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-				checkBox.Font = Enum.Font.SourceSansBold
-				checkBox.TextSize = 14
-				checkBox.Parent = itemFrame
+--==================================================
+-- NPC REGISTRY
+--==================================================
 
-				local boxCorner = Instance.new("UICorner")
-				boxCorner.CornerRadius = UDim.new(0, 4)
-				boxCorner.Parent = checkBox
+local function unregisterNPC(model)
+	NPCs[model] = nil
 
-				-- الحدث عند الضغط على المربع لاختيار البووس وتثبيت الـ ESP عليه دائمًا
-				checkBox.MouseButton1Click:Connect(function()
-					if selectedTargetModel == model then
-						selectedTargetModel = nil
-						targetHighlight.Parent = nil
-					else
-						selectedTargetModel = model
-						targetHighlight.Parent = model
-					end
-					updateNPCList()
-				end)
-			end
+	if CurrentTarget == model then
+		CurrentTarget = nil
+
+		if ESP then
+			ESP:Destroy()
+			ESP = nil
 		end
 	end
 end
 
---// ==================== [ 6) منطق العمل المستمر (ضرب + فحص دائم لمنع الفصل) ] ====================
-local DAMAGE = 25
-local attackCooldown = 0.1
-local lastAttack = 0
-local updateClock = 0
-
-RunService.RenderStepped:Connect(function(dt)
-	updateClock = updateClock + dt
-	-- تحديث القائمة تلقائياً كل ثانية لضمان ظهور البوسات الجديدة وعدم فصل السكريبت
-	if updateClock >= 1 then
-		updateClock = 0
-		pcall(updateNPCList)
+local function registerNPC(model)
+	if not isNPC(model) then
+		return
 	end
 
-	if not killAuraOn then return end
+	if NPCs[model] then
+		return
+	end
 
-	local currentTime = tick()
-	local char = player.Character
-	local root = char and char:FindFirstChild("HumanoidRootPart")
-	if not root then return end
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
 
-	-- إذا كان هناك هدف محدد يدوياً من القائمة
-	if selectedTargetModel and selectedTargetModel.Parent then
-		local enemyPart = selectedTargetModel:FindFirstChild("HumanoidRootPart") or selectedTargetModel:FindFirstChild("PrimaryPart") or selectedTargetModel:FindFirstChildWhichIsA("BasePart")
-		local hum = selectedTargetModel:FindFirstChildOfClass("Humanoid")
+	NPCs[model] = {
+		Model = model,
+		Humanoid = humanoid
+	}
 
-		if enemyPart and (root.Position - enemyPart.Position).Magnitude <= 3000 then
-			targetHighlight.Parent = selectedTargetModel -- إبقاء الـ ESP ثابت ودائم لا يختفي أبداً
+	humanoid.Died:Connect(function()
+		unregisterNPC(model)
+	end)
+end
 
-			if currentTime - lastAttack >= attackCooldown then
-				lastAttack = currentTime
-				if hum and hum.Health > 0 then
-					hum:TakeDamage(DAMAGE)
-				else
-					-- إذا مات الهدف، نلغي التحديد تلقائياً
-					targetHighlight.Parent = nil
-					selectedTargetModel = nil
+--==================================================
+-- INITIAL DETECTION
+--==================================================
+
+for _, object in ipairs(workspace:GetDescendants()) do
+	if object:IsA("Model") then
+		registerNPC(object)
+	end
+end
+
+--==================================================
+-- AUTO DETECTION
+--==================================================
+
+workspace.DescendantAdded:Connect(function(object)
+	if object:IsA("Model") then
+		task.defer(registerNPC, object)
+	end
+end)
+
+workspace.DescendantRemoving:Connect(function(object)
+	if object:IsA("Model") then
+		unregisterNPC(object)
+	end
+end)
+
+--==================================================
+-- ESP
+--==================================================
+
+local function clearESP()
+	if ESP then
+		ESP:Destroy()
+		ESP = nil
+	end
+end
+
+local function createESP(model)
+	clearESP()
+
+	if not Settings.ShowESP then
+		return
+	end
+
+	if not model then
+		return
+	end
+
+	ESP = Instance.new("Highlight")
+	ESP.Name = "K7LE_TargetESP"
+	ESP.Adornee = model
+	ESP.FillColor = Color3.fromRGB(0, 255, 0)
+	ESP.OutlineColor = Color3.fromRGB(255, 255, 255)
+	ESP.FillTransparency = 0.55
+	ESP.OutlineTransparency = 0
+	ESP.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	ESP.Parent = model
+end
+
+--==================================================
+-- TARGET SYSTEM
+--==================================================
+
+local function getNearestNPC()
+	local character = Player.Character
+	local playerRoot = character and getRoot(character)
+
+	if not playerRoot then
+		return nil
+	end
+
+	local nearestNPC = nil
+	local nearestDistance = Settings.Range
+
+	for model, data in pairs(NPCs) do
+		if model.Parent
+			and data.Humanoid
+			and data.Humanoid.Health > 0 then
+
+			local npcRoot = getRoot(model)
+
+			if npcRoot then
+				local distance =
+					(playerRoot.Position - npcRoot.Position).Magnitude
+
+				if distance <= nearestDistance then
+					nearestDistance = distance
+					nearestNPC = model
 				end
 			end
-			return
+		end
+	end
+
+	return nearestNPC
+end
+
+local function setTarget(model)
+	if CurrentTarget == model then
+		return
+	end
+
+	CurrentTarget = model
+
+	if CurrentTarget then
+		createESP(CurrentTarget)
+	else
+		clearESP()
+	end
+end
+
+local function isTargetValid()
+	if not CurrentTarget then
+		return false
+	end
+
+	if not CurrentTarget.Parent then
+		return false
+	end
+
+	if not isNPC(CurrentTarget) then
+		return false
+	end
+
+	local character = Player.Character
+	local playerRoot = character and getRoot(character)
+	local npcRoot = getRoot(CurrentTarget)
+
+	if not playerRoot or not npcRoot then
+		return false
+	end
+
+	local distance =
+		(playerRoot.Position - npcRoot.Position).Magnitude
+
+	return distance <= Settings.Range
+end
+
+--==================================================
+-- MAIN TARGET & KILLAURA LOOP
+--==================================================
+
+RunService.Heartbeat:Connect(function()
+	local currentTime = os.clock()
+
+	-- فحص وتنظيف الـ NPCs الميتة
+	for model, data in pairs(NPCs) do
+		if not model.Parent
+			or not data.Humanoid
+			or data.Humanoid.Health <= 0 then
+
+			unregisterNPC(model)
+		end
+	end
+
+	if currentTime - LastScan >= Settings.RefreshInterval then
+		LastScan = currentTime
+
+		-- Auto Target
+		if Settings.AutoTarget then
+			if not isTargetValid() then
+				setTarget(getNearestNPC())
+			end
 		else
-			-- إذا ابتعد كثيراً، نوقف الـ ESP الخاص به
-			targetHighlight.Parent = nil
+			if not isTargetValid() then
+				setTarget(nil)
+			end
+		end
+	end
+
+	-- KillAura Logic (ضرب مستمر ضمن المدى 3000)
+	if Settings.KillAura and CurrentTarget then
+		local humanoid = CurrentTarget:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.Health > 0 then
+			if currentTime - LastAttack >= Settings.AttackCooldown then
+				LastAttack = currentTime
+				humanoid:TakeDamage(Settings.Damage)
+			end
 		end
 	end
 end)
 
---// ==================== [ 7) تصغير الواجهة وإعادتها (شكل دائري) ] ====================
-local info = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+--==================================================
+-- GUI
+--==================================================
 
-Title.MouseButton1Click:Connect(function()
-	isVisible = not isVisible
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "K7LE_NPC_GUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
 
-	if isVisible then
-		TweenService:Create(Frame, info, {Size = UDim2.new(0, 260, 0, 220), BackgroundTransparency = 0}):Play()
-		TweenService:Create(frameCorner, info, {CornerRadius = UDim.new(0, 8)}):Play()
-		Title.Size = UDim2.new(1, 0, 0, 25)
-		
-		task.wait(0.1)
-		killAuraToggle.Visible = true
-		circle1.Visible = true
-		NL1.Visible = true
-		ScrollingFrame.Visible = true
-	else
-		killAuraToggle.Visible = false
-		circle1.Visible = false
-		NL1.Visible = false
-		ScrollingFrame.Visible = false
-		
-		TweenService:Create(Frame, info, {Size = UDim2.new(0, 50, 0, 50), BackgroundTransparency = 0}):Play()
-		TweenService:Create(frameCorner, info, {CornerRadius = UDim.new(1, 0)}):Play()
-		Title.Size = UDim2.new(1, 0, 1, 0)
+local Main = Instance.new("Frame")
+Main.Name = "MainFrame"
+Main.Size = UDim2.fromOffset(280, 220)
+Main.Position = UDim2.fromOffset(20, 100)
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Main.BorderColor3 = Color3.fromRGB(0, 255, 0)
+Main.BorderSizePixel = 1
+Main.Active = true
+Main.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = Main
+
+--==================================================
+-- TITLE
+--==================================================
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, -45, 0, 35)
+Title.Position = UDim2.fromOffset(10, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "K7LE • Controller Pro"
+Title.TextColor3 = Color3.fromRGB(0, 255, 0)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Main
+
+--==================================================
+-- MINIMIZE
+--==================================================
+
+local Minimize = Instance.new("TextButton")
+Minimize.Name = "Minimize"
+Minimize.Size = UDim2.fromOffset(30, 30)
+Minimize.Position = UDim2.new(1, -35, 0, 3)
+Minimize.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Minimize.Text = "-"
+Minimize.TextColor3 = Color3.fromRGB(0, 255, 0)
+Minimize.TextSize = 20
+Minimize.Font = Enum.Font.SourceSansBold
+Minimize.Parent = Main
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(1, 0)
+MinCorner.Parent = Minimize
+
+--==================================================
+-- BUTTON CREATOR
+--==================================================
+
+local function createButton(text, y)
+	local button = Instance.new("TextButton")
+
+	button.Size = UDim2.new(1, -20, 0, 32)
+	button.Position = UDim2.fromOffset(10, y)
+
+	button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	button.BorderColor3 = Color3.fromRGB(0, 255, 0)
+	button.BorderSizePixel = 1
+
+	button.Text = text
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+	button.Font = Enum.Font.SourceSansBold
+	button.TextSize = 13
+
+	button.Parent = Main
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 5)
+	corner.Parent = button
+
+	return button
+end
+
+local AutoButton = createButton("AUTO TARGET : ON", 40)
+local KillAuraButton = createButton("KILL AURA (3000) : ON", 77)
+local ESPButton = createButton("ESP : ON", 114)
+local TargetButton = createButton("TARGET : NONE", 151)
+
+--==================================================
+-- BUTTON EVENTS
+--==================================================
+
+AutoButton.MouseButton1Click:Connect(function()
+	Settings.AutoTarget = not Settings.AutoTarget
+	AutoButton.Text = Settings.AutoTarget and "AUTO TARGET : ON" or "AUTO TARGET : OFF"
+	if not Settings.AutoTarget then
+		setTarget(nil)
 	end
 end)
 
---// ==================== [ 8) الربط النهائي ] ====================
-Title.Parent = Frame
-Frame.Parent = ScreenGui
-ScreenGui.Enabled = true
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+KillAuraButton.MouseButton1Click:Connect(function()
+	Settings.KillAura = not Settings.KillAura
+	KillAuraButton.Text = Settings.KillAura and "KILL AURA (3000) : ON" or "KILL AURA (3000) : OFF"
+end)
 
--- تشغيل أول تحديث فوري للقائمة عند التحميل
-pcall(updateNPCList)
+ESPButton.MouseButton1Click:Connect(function()
+	Settings.ShowESP = not Settings.ShowESP
+	if Settings.ShowESP then
+		ESPButton.Text = "ESP : ON"
+		if CurrentTarget then
+			createESP(CurrentTarget)
+		end
+	else
+		ESPButton.Text = "ESP : OFF"
+		clearESP()
+	end
+end)
+
+--==================================================
+-- TARGET DISPLAY
+--==================================================
+
+RunService.RenderStepped:Connect(function()
+	if CurrentTarget and CurrentTarget.Parent then
+		TargetButton.Text = "TARGET : " .. CurrentTarget.Name
+	else
+		TargetButton.Text = "TARGET : NONE"
+	end
+end)
+
+--==================================================
+-- MOBILE DRAG
+--==================================================
+
+local dragging = false
+local dragStart
+local startPosition
+
+Title.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch
+		or input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+		dragging = true
+		dragStart = input.Position
+		startPosition = Main.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not dragging then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.Touch
+		or input.UserInputType == Enum.UserInputType.MouseMovement then
+
+		local delta = input.Position - dragStart
+
+		Main.Position = UDim2.new(
+			startPosition.X.Scale,
+			startPosition.X.Offset + delta.X,
+
+			startPosition.Y.Scale,
+			startPosition.Y.Offset + delta.Y
+		)
+	end
+end)
+
+--==================================================
+-- MINIMIZE (آمن تماماً وبدون أخطاء كلاسات)
+--==================================================
+
+local minimized = false
+
+Minimize.MouseButton1Click:Connect(function()
+	minimized = not minimized
+
+	if minimized then
+		for _, child in ipairs(Main:GetChildren()) do
+			if child ~= Title
+				and child ~= Minimize
+				and not child:IsA("UICorner") then
+
+				child.Visible = false
+			end
+		end
+
+		TweenService:Create(
+			Main,
+			TweenInfo.new(0.2, Enum.EasingStyle.Quad),
+			{Size = UDim2.fromOffset(45, 45)}
+		):Play()
+
+		Minimize.Text = "+"
+	else
+		TweenService:Create(
+			Main,
+			TweenInfo.new(0.2, Enum.EasingStyle.Quad),
+			{Size = UDim2.fromOffset(280, 220)}
+		):Play()
+
+		task.wait(0.2)
+
+		for _, child in ipairs(Main:GetChildren()) do
+			if not child:IsA("UICorner") then
+				child.Visible = true
+			end
+		end
+
+		Minimize.Text = "-"
+	end
+end)
+
+print("[K7LE] NPC Controller + KillAura Loaded Successfully (100% Clean)")
